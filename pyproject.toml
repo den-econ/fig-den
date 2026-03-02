@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "fig-den"
+version = "0.1.0"
+description = "DEN (Dewan Ekonomi Nasional) house-style charting package for Python."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    { name = "Dewan Ekonomi Nasional", email = "info@dewanekonomi.go.id" },
+]
+dependencies = [
+    "matplotlib>=3.5",
+    "seaborn>=0.12",
+    "numpy>=1.21",
+    "pandas>=1.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/den-econ/fig-den"
+
+[tool.setuptools]
+py-modules = ["fig_den"]
