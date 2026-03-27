@@ -40,6 +40,47 @@ den.label(ax, title="GDP Growth", ylabel="%")
 den.save(fig, "growth.png")   # 300 dpi, tight bbox
 ```
 
+## Line charts
+
+### Long format (with `hue`)
+
+When your data has one row per observation and a column that identifies each series, use `den.line` with `hue`:
+
+```python
+df_long = pd.DataFrame({
+    "year":    [2020, 2021, 2022, 2023, 2024] * 2,
+    "growth":  [2.1, 3.7, 5.3, 5.0, 5.2, 3.0, 4.1, 4.8, 4.5, 4.7],
+    "country": ["Indonesia"] * 5 + ["Malaysia"] * 5,
+})
+
+fig, ax = den.subplots()
+den.line(ax, df_long, x="year", y="growth", hue="country",
+         annotate_last=True)
+den.label(ax, title="GDP Growth Comparison", ylabel="%")
+```
+
+The `hue` column splits the data into one line per group, each assigned a colour from the DEN palette automatically. Use `colors=[den.GOLD, den.RED]` to override.
+
+### Wide format (with `line_multi`)
+
+When each series is its own column, use `den.line_multi`:
+
+```python
+df_wide = pd.DataFrame({
+    "year":      [2020, 2021, 2022, 2023, 2024],
+    "Indonesia": [2.1, 3.7, 5.3, 5.0, 5.2],
+    "Malaysia":  [3.0, 4.1, 4.8, 4.5, 4.7],
+})
+
+fig, ax = den.subplots()
+den.line_multi(ax, df_wide, x="year",
+               y_cols=["Indonesia", "Malaysia"],
+               annotate_last=True)
+den.label(ax, title="GDP Growth Comparison", ylabel="%")
+```
+
+Column names become the legend labels. Both functions support `annotate_last=True` to place a bold label at the end of each line, and `pct=True` to append `%` to those labels.
+
 ## API reference
 
 ### Style & figure
@@ -57,7 +98,8 @@ den.save(fig, "growth.png")   # 300 dpi, tight bbox
 | `den.line_multi(ax, data, x, y_cols)` | Multi-line chart from wide-format data (each series is a column). |
 | `den.bar(ax, data, x, y)` | Simple bar chart with optional value annotations. |
 | `den.stacked_bar(ax, data, x, y_cols)` | Stacked bar chart with optional percentage labels. |
-| `den.grouped_bar(ax, data, x, y_cols)` | Side-by-side grouped bar chart. |
+| `den.grouped_bar(ax, data, x, y_cols)` | Side-by-side grouped bar chart. Returns `x_pos` for alignment with secondary axes. |
+| `den.combo_bar_line(ax, data, x, bar_cols, line_cols)` | Grouped bars + line(s) on secondary y-axis. Returns `ax2` for further formatting. |
 
 ### Annotations & helpers
 
@@ -69,6 +111,8 @@ den.save(fig, "growth.png")   # 300 dpi, tight bbox
 | `den.label(ax, title, xlabel, ylabel, subtitle)` | Set common labels on an axes. |
 | `den.legend_top(ax)` | Place legend centered above the plot. |
 | `den.legend_right(ax)` | Place legend to the right of the plot. |
+| `den.legend_merge(*axes)` | Combine legend handles from multiple axes into one. |
+| `den.twinx(ax)` | Create a DEN-styled secondary y-axis (right side). |
 
 ### Axis formatting
 
@@ -78,6 +122,85 @@ den.save(fig, "growth.png")   # 300 dpi, tight bbox
 | `den.fmt_million(ax)` | Format ticks as millions (÷ 1e6). |
 | `den.fmt_pct(ax)` | Append `%` to tick labels. |
 | `den.fmt_indo(value)` | Indonesian number format (e.g. `1.234.567,89`). |
+
+## Dual-axis combo charts
+
+Use `combo_bar_line` when you need grouped bars on the left axis and line(s) on the right axis — a common layout for comparing levels (e.g. production) against a rate (e.g. utilisation).
+
+### Quick way — `combo_bar_line`
+
+```python
+import fig_den as den
+import pandas as pd
+
+den.style()
+
+df = pd.DataFrame({
+    "Tahun": [2018, 2019, 2020, 2021, 2022, 2023, 2024],
+    "Kapasitas":  [110, 112, 117, 117, 117, 120, 119.3],
+    "Produksi":   [72,  73,  60,  63,  63,  67,  67.8],
+    "Konsumsi":   [69,  69,  60,  63,  63,  67,  56.5],
+    "Utilisasi":  [65,  65,  51,  54,  54,  56,  56.5],
+})
+
+fig, ax = den.subplots(figsize=(12, 6))
+
+ax2 = den.combo_bar_line(
+    ax, df, "Tahun",
+    bar_cols=["Kapasitas", "Produksi", "Konsumsi"],
+    line_cols=["Utilisasi"],
+    line_colors=[den.GREY],
+    ylabel_left="Juta Ton",
+    bar_annotate=False,
+    line_annotate_last=True,
+    line_pct=True,
+)
+
+# Format and adjust the secondary axis
+den.fmt_pct(ax2)
+ax2.set_ylim(40, 80)
+
+den.label(ax, title="Ikhtisar Kinerja Industri Semen Indonesia")
+den.save(fig, "semen.png")
+```
+
+The function handles x-position alignment, z-ordering (line on top of bars), and legend merging automatically. It returns `ax2` (the right-side axes) so you can set limits, format ticks, or add further annotations.
+
+**Key parameters:**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `bar_colors` / `line_colors` | DEN palette | Override colours for each series group. |
+| `bar_width` | `0.35` | Width of each bar. |
+| `bar_annotate` / `bar_fmt` | `True` / `"{:.1f}"` | Show values on top of bars. |
+| `line_annotate_last` / `line_pct` | `False` / `False` | Bold label at the last point; append `%`. |
+| `ylabel_left` / `ylabel_right` | `""` | Axis labels. |
+| `legend` / `legend_ncol` | `True` / `4` | Show merged legend above the chart. |
+
+### Composable way — `twinx` + `legend_merge`
+
+For layouts that don't fit the standard combo pattern, use the building blocks directly:
+
+```python
+fig, ax = den.subplots()
+
+# Bars on the primary axis
+x_pos = den.grouped_bar(ax, df, "Tahun",
+                        ["Kapasitas", "Produksi", "Konsumsi"],
+                        legend=False)
+
+# Line on the secondary axis, aligned to the same x positions
+ax2 = den.twinx(ax, ylabel="Utilisasi (%)")
+ax2.plot(x_pos, df["Utilisasi"], color=den.GREY,
+         marker="o", label="Utilisasi")
+
+# Merge legends from both axes
+den.legend_merge(ax, ax2)
+
+den.fmt_pct(ax2)
+```
+
+`grouped_bar` returns `x_pos` (an integer array `[0, 1, 2, …]`) so the line aligns with the bar positions. `twinx` creates a secondary axis with the right spine visible and grid disabled (to avoid double-gridlines). `legend_merge` collects handles from all axes into a single legend above the chart.
 
 ### Colours
 

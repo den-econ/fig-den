@@ -133,6 +133,32 @@ def subplots(nrows=1, ncols=1, figsize=None, **kwargs):
     return fig, axes
 
 
+def twinx(ax, *, ylabel="", grid=False):
+    """Create a DEN-styled secondary y-axis (right side).
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The primary axes to twin.
+    ylabel : str
+        Label for the right y-axis.
+    grid : bool
+        Whether to show grid on the secondary axis.
+        Default False to avoid double-gridlines.
+
+    Returns
+    -------
+    ax2 : matplotlib.axes.Axes
+        The new secondary axes sharing the same x-axis.
+    """
+    ax2 = ax.twinx()
+    ax2.grid(grid)
+    ax2.spines["right"].set_visible(True)
+    if ylabel:
+        ax2.set_ylabel(ylabel)
+    return ax2
+
+
 # ---------------------------------------------------------------------------
 # 4. CHART FUNCTIONS
 # ---------------------------------------------------------------------------
@@ -284,6 +310,111 @@ def grouped_bar(ax, data, x, y_cols, *, colors=None, width=0.35,
     ax.set_xticklabels(x_vals)
     if legend:
         legend_top(ax)
+    return x_pos
+
+
+def combo_bar_line(ax, data, x, bar_cols, line_cols, *,
+                   bar_colors=None, line_colors=None,
+                   bar_width=0.35, bar_annotate=True, bar_fmt="{:.1f}",
+                   line_marker="o", line_markersize=4, line_linewidth=2.5,
+                   line_annotate_last=False, line_pct=False,
+                   ylabel_left="", ylabel_right="",
+                   legend=True, legend_ncol=4):
+    """Grouped bars on primary y-axis + line(s) on secondary y-axis.
+
+    Parameters
+    ----------
+    ax : Axes
+        Primary axes (left y-axis, used for bars).
+    data : DataFrame
+        Wide-format data.
+    x : str
+        Column name for the shared x-axis (categories).
+    bar_cols : list of str
+        Column names for grouped bar series.
+    line_cols : list of str
+        Column names for line series on secondary y-axis.
+    bar_colors, line_colors : list or None
+        Colours for each series.  Defaults to DEN palette.
+    bar_width : float
+        Width of each bar group member.
+    bar_annotate : bool
+        Annotate bar values.
+    bar_fmt : str
+        Format string for bar annotations.
+    line_marker, line_markersize, line_linewidth
+        Line styling options.
+    line_annotate_last : bool
+        Add bold label at the last data point of each line.
+    line_pct : bool
+        If True, append '%' to line annotations.
+    ylabel_left, ylabel_right : str
+        Labels for left and right y-axes.
+    legend : bool
+        Show merged legend above the chart.
+    legend_ncol : int
+        Number of legend columns.
+
+    Returns
+    -------
+    ax2 : Axes
+        The secondary axes (right y-axis), for further formatting.
+    """
+    _ensure_style()
+    b_cols = bar_colors or palette()
+    l_cols = line_colors or palette(len(bar_cols) + len(line_cols))[len(bar_cols):]
+
+    x_vals = data[x]
+    x_pos = np.arange(len(x_vals))
+
+    # --- Grouped bars on primary axis ---
+    n = len(bar_cols)
+    offsets = np.linspace(-(n - 1) / 2 * bar_width,
+                          (n - 1) / 2 * bar_width, n)
+
+    for i, col in enumerate(bar_cols):
+        c = b_cols[i % len(b_cols)]
+        vals = data[col].values.astype(float)
+        bars = ax.bar(x_pos + offsets[i], vals, width=bar_width,
+                      color=c, label=col)
+        if bar_annotate:
+            for b, val in zip(bars, vals):
+                ax.text(b.get_x() + b.get_width() / 2, b.get_height(),
+                        bar_fmt.format(val), ha="center", va="bottom",
+                        fontsize=8, fontweight="bold")
+
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(x_vals)
+    if ylabel_left:
+        ax.set_ylabel(ylabel_left)
+
+    # --- Line(s) on secondary axis ---
+    ax2 = twinx(ax, ylabel=ylabel_right)
+
+    # Ensure line renders on top of bars
+    ax2.set_zorder(ax.get_zorder() + 1)
+    ax.patch.set_visible(False)
+
+    for i, col in enumerate(line_cols):
+        c = l_cols[i % len(l_cols)]
+        vals = data[col].values.astype(float)
+        ax2.plot(x_pos, vals, color=c, linewidth=line_linewidth,
+                 marker=line_marker, markersize=line_markersize, label=col)
+        if line_annotate_last:
+            last_val = vals[-1]
+            lbl = f"{last_val:.1f}%" if line_pct else f"{last_val:.1f}"
+            ax2.annotate(
+                lbl, xy=(x_pos[-1], last_val),
+                xytext=(x_pos[-1] + 0.3, last_val),
+                fontsize=10, color=c, fontweight="bold",
+                verticalalignment="center",
+            )
+
+    # --- Merged legend ---
+    if legend:
+        legend_merge(ax, ax2, ncol=legend_ncol)
+
+    return ax2
 
 
 def hline(ax, y=0, **kwargs):
@@ -359,6 +490,33 @@ def legend_right(ax, **kwargs):
     kwargs.setdefault("loc", "upper left")
     kwargs.setdefault("frameon", False)
     ax.legend(**kwargs)
+
+
+def legend_merge(*axes, ax=None, ncol=4, **kwargs):
+    """Combine legend handles from multiple axes into a single legend.
+
+    Parameters
+    ----------
+    *axes : Axes
+        Two or more axes whose legend handles should be merged.
+    ax : Axes or None
+        The axes on which to place the merged legend.
+        Defaults to the first axes passed.
+    ncol : int
+        Number of legend columns.
+    """
+    handles, labels = [], []
+    for a in axes:
+        h, l = a.get_legend_handles_labels()
+        handles.extend(h)
+        labels.extend(l)
+        if a.get_legend() is not None:
+            a.get_legend().remove()
+    target = ax or axes[0]
+    kwargs.setdefault("bbox_to_anchor", (0.5, 1.12))
+    kwargs.setdefault("loc", "upper center")
+    kwargs.setdefault("frameon", False)
+    target.legend(handles, labels, ncol=ncol, **kwargs)
 
 
 # ---------------------------------------------------------------------------
