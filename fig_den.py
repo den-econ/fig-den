@@ -24,38 +24,45 @@ from matplotlib.colors import LinearSegmentedColormap
 # 1. COLOR PALETTES
 # ---------------------------------------------------------------------------
 
-# Full DEN palette (9 colours)
+# Full DEN palette (12 colours, v1.0)
 PALETTE = [
-    "#f0a22e",  # 0  gold
-    "#a5644e",  # 1  brown
-    "#c00000",  # 2  red
-    "#a19574",  # 3  tan
-    "#3a3a3a",  # 4  dark grey
-    "#c3986d",  # 5  sand
-    "#a0640c",  # 6  amber
-    "#b58b80",  # 7  rose
-    "#c17529",  # 8  orange
+    "#EEC051",  # 0  gold         (core)
+    "#845B24",  # 1  dark brown   (core)
+    "#C00000",  # 2  red          (core)
+    "#FFC000",  # 3  bright gold  (standard)
+    "#A19574",  # 4  tan          (standard)
+    "#3A3A3A",  # 5  dark grey    (standard)
+    "#935200",  # 6  deep amber   (standard)
+    "#F8E69B",  # 7  light gold   (extended)
+    "#C3986D",  # 8  warm sand    (extended)
+    "#B58B80",  # 9  rose brown   (extended)
+    "#9F522C",  # 10 rust         (extended)
+    "#8B8679",  # 11 olive tan    (extended)
 ]
 
 # Handy sub-palettes
-PALETTE_2 = PALETTE[:2]        # gold + brown  (most common pair)
-PALETTE_4 = PALETTE[:4]        # gold, brown, red, tan
+PALETTE_2 = PALETTE[:2]        # gold + dark brown  (most common pair)
+PALETTE_4 = PALETTE[:4]        # gold, dark brown, red, bright gold
 PALETTE_6 = PALETTE[:6]
-GOLD    = PALETTE[0]
-BROWN   = PALETTE[1]
-RED     = PALETTE[2]
-TAN     = PALETTE[3]
-GREY    = PALETTE[4]
+GOLD        = PALETTE[0]
+DARK_BROWN  = PALETTE[1]
+BROWN       = PALETTE[1]       # backwards-compatible alias
+RED         = PALETTE[2]
+BRIGHT_GOLD = PALETTE[3]
+TAN         = PALETTE[4]
+GREY        = PALETTE[5]
+DEEP_AMBER  = PALETTE[6]
+LIGHT_GOLD  = PALETTE[7]
 
-# Sequential colormap (gold → brown → red)
-CMAP_SEQ = LinearSegmentedColormap.from_list("den_seq", [GOLD, BROWN, RED])
+# Sequential colormap (light gold → gold → dark brown)
+CMAP_SEQ = LinearSegmentedColormap.from_list("den_seq", [LIGHT_GOLD, GOLD, DARK_BROWN])
 
-# Diverging colormap (gold ← tan → red)
-CMAP_DIV = LinearSegmentedColormap.from_list("den_div", [GOLD, TAN, RED])
+# Diverging colormap (gold ← light gold → red)
+CMAP_DIV = LinearSegmentedColormap.from_list("den_div", [GOLD, LIGHT_GOLD, RED])
 
 
 def palette(n=None):
-    """Return the first *n* DEN colours (default: all 9)."""
+    """Return the first *n* DEN colours (default: all 12)."""
     if n is None:
         return list(PALETTE)
     return list(PALETTE[:n])
