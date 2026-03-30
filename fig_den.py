@@ -33,11 +33,11 @@ PALETTE = [
     "#A19574",  # 4  tan          (standard)
     "#3A3A3A",  # 5  dark grey    (standard)
     "#935200",  # 6  deep amber   (standard)
-    "#F8E69B",  # 7  light gold   (extended)
-    "#C3986D",  # 8  warm sand    (extended)
-    "#B58B80",  # 9  rose brown   (extended)
+    "#4A6D7C",  # 7  slate blue   (extended)
+    "#5B8A72",  # 8  muted teal   (extended)
+    "#A8687A",  # 9  dusty rose   (extended)
     "#9F522C",  # 10 rust         (extended)
-    "#8B8679",  # 11 olive tan    (extended)
+    "#F8E69B",  # 11 light gold   (extended)
 ]
 
 # Handy sub-palettes
@@ -52,7 +52,11 @@ BRIGHT_GOLD = PALETTE[3]
 TAN         = PALETTE[4]
 GREY        = PALETTE[5]
 DEEP_AMBER  = PALETTE[6]
-LIGHT_GOLD  = PALETTE[7]
+SLATE_BLUE  = PALETTE[7]
+MUTED_TEAL  = PALETTE[8]
+DUSTY_ROSE  = PALETTE[9]
+RUST        = PALETTE[10]
+LIGHT_GOLD  = PALETTE[11]
 
 # Sequential colormap (light gold → gold → dark brown)
 CMAP_SEQ = LinearSegmentedColormap.from_list("den_seq", [LIGHT_GOLD, GOLD, DARK_BROWN])
