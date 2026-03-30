@@ -72,6 +72,13 @@ def palette(n=None):
     return list(PALETTE[:n])
 
 
+def color(i):
+    """Return the *i*-th DEN palette colour (1-based, matching Stata den1–den12)."""
+    if not 1 <= i <= len(PALETTE):
+        raise ValueError(f"i must be between 1 and {len(PALETTE)}, got {i}")
+    return PALETTE[i - 1]
+
+
 def cmap(kind="sequential"):
     """Return a DEN colormap.  kind = 'sequential' | 'diverging'."""
     return CMAP_SEQ if kind == "sequential" else CMAP_DIV

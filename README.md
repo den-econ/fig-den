@@ -204,15 +204,55 @@ den.fmt_pct(ax2)
 
 ### Colours
 
+Pick colours by position (1-based, matching Stata `den1`–`den12`) or by name:
+
 ```python
-den.PALETTE          # full 9-colour list
-den.PALETTE_2        # gold + brown
-den.PALETTE_4        # gold, brown, red, tan
-den.GOLD, den.BROWN, den.RED, den.TAN, den.GREY  # individual colours
-den.palette(n)       # first n colours
-den.cmap("sequential")   # gold → brown → red
-den.cmap("diverging")    # gold ← tan → red
+den.color(1)         # "#EEC051" (gold)
+den.color(3)         # "#C00000" (red)
+
+den.GOLD             # "#EEC051"  — by name
+den.DARK_BROWN       # "#845B24"
+den.RED              # "#C00000"
 ```
+
+Use in any matplotlib/seaborn call:
+
+```python
+ax.scatter(x, y, color=den.color(1))             # gold markers
+ax.plot(x, y, color=den.color(3))                 # red line
+
+# Two groups with specific colours
+ax.scatter(x1, y1, color=den.color(1), label="A")
+ax.scatter(x2, y2, color=den.color(3), label="B")
+```
+
+Full palette access:
+
+```python
+den.PALETTE          # full 12-colour list
+den.PALETTE_2        # gold + dark brown
+den.PALETTE_4        # gold, dark brown, red, bright gold
+den.palette(n)       # first n colours
+den.cmap("sequential")   # light gold → gold → dark brown
+den.cmap("diverging")    # gold ← light gold → red
+```
+
+All named constants:
+
+| Position | Constant | Hex |
+|----------|----------|-----|
+| 1 | `den.GOLD` | `#EEC051` |
+| 2 | `den.DARK_BROWN` | `#845B24` |
+| 3 | `den.RED` | `#C00000` |
+| 4 | `den.BRIGHT_GOLD` | `#FFC000` |
+| 5 | `den.TAN` | `#A19574` |
+| 6 | `den.GREY` | `#3A3A3A` |
+| 7 | `den.DEEP_AMBER` | `#935200` |
+| 8 | `den.SLATE_BLUE` | `#4A6D7C` |
+| 9 | `den.MUTED_TEAL` | `#5B8A72` |
+| 10 | `den.DUSTY_ROSE` | `#A8687A` |
+| 11 | `den.RUST` | `#9F522C` |
+| 12 | `den.LIGHT_GOLD` | `#F8E69B` |
 
 ## License
 
