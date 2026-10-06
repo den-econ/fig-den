@@ -40,6 +40,118 @@ den.label(ax, title="GDP Growth", ylabel="%")
 den.save(fig, "growth.png")   # 300 dpi, tight bbox
 ```
 
+## Default behaviour (v1.1)
+
+After `den.style()`, charts made with fig-den:
+
+1. **have no grid lines**, only the left and bottom axis lines;
+2. **label the last value of each line** (largest x) in bold, in the line's
+   colour. Labels that would overlap are pushed apart vertically, including
+   labels of lines added with plain `ax.plot`;
+3. **anchor date ticks at the last observation**: when x holds dates, the
+   last tick is the last observation and the other ticks step backward
+   from it (`Aug 2018, Aug 2020, …, Aug 2026`).
+
+```python
+import fig_den as den
+import numpy as np
+import pandas as pd
+
+den.style()
+
+dates = pd.date_range("2018-08-01", "2026-08-01", freq="MS")
+df = pd.DataFrame({
+    "date":   np.tile(dates, 2),
+    "series": np.repeat(["Inflasi", "BI Rate"], len(dates)),
+    "value":  np.concatenate([np.linspace(3, 2.5, len(dates)),
+                              np.linspace(5, 4.75, len(dates))]),
+})
+
+fig, ax = den.subplots(figsize=(9, 5))
+den.line(ax, df, x="date", y="value", hue="series", marker=None)
+den.label(ax, title="Inflasi dan BI Rate", ylabel="%")
+den.save(fig, "macro.png")
+```
+
+**Where the defaults apply.** Labels and date ticks are added by `den.subplots`, `den.twinx`, `den.line`, `den.line_multi`, `den.combo_bar_line` and `den.save`. For a figure made entirely with plain matplotlib or pandas and saved with `fig.savefig`, call `den.finalize(fig)` once. They are worked out when the figure is drawn, so lines added after the `den` call are included.
+
+**Date ticks are only applied to date axes.** They need x values that matplotlib treats as dates (`datetime64`, `Timestamp`, `datetime`), with matplotlib's automatic date ticks still in place. Ticks are left unchanged for:
+- numeric years (`year = 2015…2024`);
+- categories (bar charts);
+- pandas `df.plot()` with a `DatetimeIndex`, which uses pandas' own period ticks;
+- any axis where you set your own locator.
+
+For anchored ticks on a numeric year column, convert it first: `pd.to_datetime(df["year"], format="%Y")`.
+
+### Last-value labels (`annotate_last` / `last_label`)
+
+```python
+# On (default): one decimal with thousands separator, bold, line colour
+den.line(ax, df, x="date", y="value", hue="series")
+
+# Append % to the default format
+den.line(ax, df, x="date", y="value", hue="series", pct=True)          # "5.1%"
+
+# Off for this chart
+den.line(ax, df, x="date", y="value", hue="series", annotate_last=False)
+
+# Number format: a format string or any callable
+den.line(ax, df, x="date", y="value", hue="series", annotate_last="{:,.0f}")
+den.line(ax, df, x="date", y="value", hue="series",
+         annotate_last=lambda v: den.fmt_indo(v, 1))                   # "1.234,5"
+
+# Full control (same options as den.label_last)
+den.label_last(ax, fmt="{:.2f} pp", fontsize=11, fontweight="normal",
+               color="grey", dodge=1.5)
+
+# Plain matplotlib
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.plot(dates, np.linspace(3, 2.5, len(dates)))
+den.finalize(fig)                         # or den.finalize(ax, last_label="{:.2f}")
+```
+
+`den.label_last(ax, ...)` options:
+
+| Option | Default | Meaning |
+|---|---|---|
+| `fmt` | `"{:,.1f}"` | Format string or function turning the value into text |
+| `dodge` | `True` | Push overlapping labels apart; a number scales the minimum gap (1 = one text line); `False` disables |
+| `color` | `None` (line colour) | One fixed colour for all labels |
+| `fontsize` | `None` (tick-label size) | Text size in points |
+| `fontweight` | `"bold"` | Font weight |
+
+Lines from `den.hline` / `den.vline`, `ax.axhline` / `ax.axvline` and marker-only plots are never labelled.
+
+### Date ticks (`date_breaks`)
+
+```python
+den.line(ax, df, x="date", y="value", hue="series")                        # automatic step
+den.line(ax, df, x="date", y="value", hue="series", date_breaks="1 year")  # Aug 2018, Aug 2019, …
+den.line(ax, df, x="date", y="value", hue="series", date_breaks="6M")      # …, Feb 2026, Aug 2026
+den.line(ax, df, x="date", y="value", hue="series", date_breaks=False)     # matplotlib default
+
+# By hand, with your own anchor
+ax.xaxis.set_major_locator(den.DateFromLastLocator(last="2026-08-01", by="2 years"))
+ax.xaxis.set_major_formatter(den.DateFromLastFormatter())
+```
+
+Steps accept `"1 year"`, `"6 months"`, `"2 quarters"`, `"2 weeks"`, `"10 days"`, `"6 hours"` or the short forms `"1Y"`, `"6M"`, `"2Q"`, `"2W"`, `"10D"`, `"6H"`. Tick labels follow the step:
+- `%Y` for yearly ticks on 1 January;
+- `%b %Y` for monthly to yearly ticks;
+- `%d %b %Y` for daily or weekly ticks.
+
+Month-end data stays on month ends (31 Aug → 28 Feb → 31 Aug).
+
+### Turning the defaults off
+
+```python
+den.style(last_label=False, date_breaks=False)        # for the whole session
+fig, ax = den.subplots(last_label=False)              # for one figure
+den.finalize(ax, last_label=False, date_breaks=False) # for one axes
+den.save(fig, "out.png", auto=False)                  # don't apply defaults on save
+```
+
 ## Line charts
 
 ### Long format (with `hue`)
@@ -54,8 +166,7 @@ df_long = pd.DataFrame({
 })
 
 fig, ax = den.subplots()
-den.line(ax, df_long, x="year", y="growth", hue="country",
-         annotate_last=True)
+den.line(ax, df_long, x="year", y="growth", hue="country")
 den.label(ax, title="GDP Growth Comparison", ylabel="%")
 ```
 
@@ -74,12 +185,11 @@ df_wide = pd.DataFrame({
 
 fig, ax = den.subplots()
 den.line_multi(ax, df_wide, x="year",
-               y_cols=["Indonesia", "Malaysia"],
-               annotate_last=True)
+               y_cols=["Indonesia", "Malaysia"])
 den.label(ax, title="GDP Growth Comparison", ylabel="%")
 ```
 
-Column names become the legend labels. Both functions support `annotate_last=True` to place a bold label at the end of each line, and `pct=True` to append `%` to those labels.
+Column names become the legend labels. Both functions label the last value of each line by default (`annotate_last=False` turns this off) and accept `pct=True` to append `%` to those labels; see [Last-value labels](#last-value-labels-annotate_last--last_label).
 
 ## API reference
 
@@ -87,14 +197,14 @@ Column names become the legend labels. Both functions support `annotate_last=Tru
 
 | Function | Description |
 |---|---|
-| `den.style(font_scale=1.0)` | Apply DEN house style globally. Call once at the top of your script or notebook. |
+| `den.style(font_scale=1.0, last_label=True, date_breaks=True)` | Apply DEN house style globally and set the label/date-tick defaults. Call once at the top of your script or notebook. |
 | `den.subplots(nrows, ncols, figsize)` | Create a figure + axes with DEN defaults. |
 
 ### Charts
 
 | Function | Description |
 |---|---|
-| `den.line(ax, data, x, y, hue)` | Line chart. Supports `annotate_last` and `pct` options. |
+| `den.line(ax, data, x, y, hue)` | Line chart. Supports `annotate_last`, `pct` and `date_breaks` options. |
 | `den.line_multi(ax, data, x, y_cols)` | Multi-line chart from wide-format data (each series is a column). |
 | `den.bar(ax, data, x, y)` | Simple bar chart with optional value annotations. |
 | `den.stacked_bar(ax, data, x, y_cols)` | Stacked bar chart with optional percentage labels. |
@@ -113,6 +223,10 @@ Column names become the legend labels. Both functions support `annotate_last=Tru
 | `den.legend_right(ax)` | Place legend to the right of the plot. |
 | `den.legend_merge(*axes)` | Combine legend handles from multiple axes into one. |
 | `den.twinx(ax)` | Create a DEN-styled secondary y-axis (right side). |
+| `den.label_last(ax, fmt)` | Label the last value of every line on an axes, in the line's colour. |
+| `den.finalize(fig_or_ax, last_label, date_breaks)` | Apply last-value labels and date ticks to a plain matplotlib/pandas figure, or change them. |
+| `den.date_ticks_from_last(ax, by)` | Anchor the ticks of a date x-axis at the last observation (no-op for non-date axes). |
+| `den.DateFromLastLocator` / `den.DateFromLastFormatter` | The locator and formatter behind it, for manual use. |
 
 ### Axis formatting
 
@@ -173,7 +287,7 @@ The function handles x-position alignment, z-ordering (line on top of bars), and
 | `bar_colors` / `line_colors` | DEN palette | Override colours for each series group. |
 | `bar_width` | `0.35` | Width of each bar. |
 | `bar_annotate` / `bar_fmt` | `True` / `"{:.1f}"` | Show values on top of bars. |
-| `line_annotate_last` / `line_pct` | `False` / `False` | Bold label at the last point; append `%`. |
+| `line_annotate_last` / `line_pct` | `True` / `False` | Bold label at the last point; append `%`. |
 | `ylabel_left` / `ylabel_right` | `""` | Axis labels. |
 | `legend` / `legend_ncol` | `True` / `4` | Show merged legend above the chart. |
 
